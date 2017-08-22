@@ -259,7 +259,7 @@ Void TComPicYuv::extendPicBorder ()
       }
       pi += stride;
     }
-#if HUANGFU_MVPADDING_ABOVE
+#if HUANGFU_PADDING_ABOVE
 
 	pi -= (stride + marginX);
 	// pi is now the (-marginX, height-1)
@@ -300,6 +300,29 @@ Void TComPicYuv::extendPicBorder ()
 		s -= stride;
 	}
 	
+
+	pi = piTxt;
+	pi=pi-stride;
+	for (Int y = 0; y < marginY; y++)
+	{
+		for (Int x = 0; x < marginX; x++)
+		{
+			pi[-marginX + x] = pi[width - (marginX - x)];
+			pi[width + x] = pi[x];
+		}
+		pi -= stride;
+	}
+	pi = piTxt+height* stride;
+	for (Int y = 0; y < marginY; y++)
+	{
+		for (Int x = 0; x < marginX; x++)
+		{
+			pi[-marginX + x] = pi[width - (marginX - x)];
+			pi[width + x] = pi[x];
+		}
+		pi += stride;
+	}
+
 
 #else
 	// pi is now the (0,height) (bottom left of image within bigger picture
