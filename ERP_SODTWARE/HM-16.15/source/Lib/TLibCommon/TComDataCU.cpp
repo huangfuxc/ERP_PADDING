@@ -2203,10 +2203,10 @@ Void TComDataCU::getInterMergeCandidates( UInt uiAbsPartIdx, UInt uiPUIdx, TComM
                        pcCUAbove->isInter( uiAbovePartIdx );
 
 #if  HUANGFU_MVPADDING_ABOVE
-  if( yP == 0 && xP >= m_pcSlice->getSPS()->getPicWidthInLumaSamples()/2)
+  if( yP == 0 && xP >= m_pcSlice->getSPS()->getPicWidthInLumaSamples()/2)//在经纬图的右上方，有时间阈上相连的部分；
   {
 	  int position;
-	  position = (xP- m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2)/64;
+	  position = (xP + nPSW - 1 - m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64;
 	  pcCUAbove = m_pcPic->getCtu(position);
 	  uiAbovePartIdx = g_auiRasterToZscan[((xP + nPSW - 1 - m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) % 64) / 4 ];
 	  isAvailableB1 = pcCUAbove &&
@@ -2225,7 +2225,7 @@ Void TComDataCU::getInterMergeCandidates( UInt uiAbsPartIdx, UInt uiPUIdx, TComM
 #if  HUANGFU_MVPADDING_ABOVE
 	if (yP == 0 && xP >= m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2)
 	{
-		pcMvFieldNeighbours[iCount << 1].getMv().setVer(-pcMvFieldNeighbours[iCount << 1].getVer());
+		pcMvFieldNeighbours[iCount << 1].getMv().setVer(-pcMvFieldNeighbours[iCount << 1].getVer());//MV 在x方向上一致，在Y方向上相反
 
 	}
 #endif
@@ -2236,7 +2236,6 @@ Void TComDataCU::getInterMergeCandidates( UInt uiAbsPartIdx, UInt uiPUIdx, TComM
 	  if (yP == 0 && xP >= m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2)
 	  {
 		  pcMvFieldNeighbours[(iCount << 1) + 1].getMv().setVer(-pcMvFieldNeighbours[(iCount << 1) + 1].getVer());
-
 	  }
 #endif
     }
@@ -2264,26 +2263,16 @@ Void TComDataCU::getInterMergeCandidates( UInt uiAbsPartIdx, UInt uiPUIdx, TComM
 
 
 #if  HUANGFU_MVPADDING_ABOVE
-  if (yP == 0 && xP >= m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2 && xP + nPSW < m_pcSlice->getSPS()->getPicWidthInLumaSamples())
+  if (yP == 0 && xP >= m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2 && xP + nPSW < m_pcSlice->getSPS()->getPicWidthInLumaSamples())//右上方的决策
   {
-	  int position;
-	  if (xP / 64 == (xP + nPSW) / 64)
-	  {
-		  position = (xP - m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64;
+		  int position;
+	  
+		  position = (xP + nPSW - m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64;
 		  pcCUAboveRight = m_pcPic->getCtu(position);
 		  uiAboveRightPartIdx = g_auiRasterToZscan[((xP + nPSW - m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) % 64) / 4];
 		  isAvailableB0 = pcCUAboveRight &&
 			  pcCUAboveRight->isInter(uiAboveRightPartIdx);
-	  }
-	  else
-	  {
-		  position = (xP - m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64+1;//不在同一个CTU下，比当前CTU靠右
-		  pcCUAboveRight = m_pcPic->getCtu(position);
-		  uiAboveRightPartIdx = 0;
-		  isAvailableB0 = pcCUAboveRight &&
-			  pcCUAboveRight->isInter(uiAboveRightPartIdx);
-
-	  }
+	 
   }
 
 #endif
@@ -2363,25 +2352,24 @@ Void TComDataCU::getInterMergeCandidates( UInt uiAbsPartIdx, UInt uiPUIdx, TComM
                        pcCULeftBottom->isDiffMER(xP-1, yP+nPSH, xP, yP) &&
                        pcCULeftBottom->isInter( uiLeftBottomPartIdx ) ;
 #if  HUANGFU_MVPADDING_ABOVE
-  if (yP + nPSH == m_pcSlice->getSPS()->getPicHeightInLumaSamples() && xP > m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2)
+  if (yP + nPSH == m_pcSlice->getSPS()->getPicHeightInLumaSamples() && xP >= m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2)//ERP的右下方几处可以参考左下方的运动矢量；
   {
 	  int position;
-	  if (xP / 64 == (xP - 1) / 64)
+	  if (xP - 1>= m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2)
 	  {
-		  position = (xP - m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64;
+		  position = (xP-1 - m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64 + yP / 64 * (m_pcSlice->getSPS()->getPicWidthInLumaSamples()/64);//CTU必须在最下方
 		  pcCULeftBottom = m_pcPic->getCtu(position);
 		  uiLeftBottomPartIdx = g_auiRasterToZscan[((xP - 1 - m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) % 64) / 4+240];
 		  isAvailableA0 = pcCULeftBottom &&
 			  pcCULeftBottom->isInter(uiLeftBottomPartIdx);
 	  }
-	  else
+	  if (!isAvailableA0)
 	  {
-		  position = (xP - m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64 - 1;//不在同一个CTU下了
+		  position = (xP + nPSW - 1 - m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64 + yP / 64 * (m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 64);
 		  pcCULeftBottom = m_pcPic->getCtu(position);
-		  uiLeftBottomPartIdx = g_auiRasterToZscan[255];
+		  uiLeftBottomPartIdx = g_auiRasterToZscan[((xP +nPSW-1 - m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) % 64) / 4 + 240];
 		  isAvailableA0 = pcCULeftBottom &&
 			  pcCULeftBottom->isInter(uiLeftBottomPartIdx);
-
 	  }
   }
 
@@ -2394,7 +2382,7 @@ Void TComDataCU::getInterMergeCandidates( UInt uiAbsPartIdx, UInt uiPUIdx, TComM
     // get Mv from Left
     TComDataCU::getMvField( pcCULeftBottom, uiLeftBottomPartIdx, REF_PIC_LIST_0, pcMvFieldNeighbours[iCount<<1] );
 #if  HUANGFU_MVPADDING_ABOVE
-	if (yP + nPSH == m_pcSlice->getSPS()->getPicHeightInLumaSamples() && xP > m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2)
+	if (yP + nPSH == m_pcSlice->getSPS()->getPicHeightInLumaSamples() && xP >= m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2)
 	{
 		pcMvFieldNeighbours[iCount << 1].getMv().setVer(-pcMvFieldNeighbours[iCount << 1].getVer());
 	}
@@ -2403,7 +2391,7 @@ Void TComDataCU::getInterMergeCandidates( UInt uiAbsPartIdx, UInt uiPUIdx, TComM
     {
       TComDataCU::getMvField( pcCULeftBottom, uiLeftBottomPartIdx, REF_PIC_LIST_1, pcMvFieldNeighbours[(iCount<<1)+1] );
 #if  HUANGFU_MVPADDING_ABOVE
-	  if (yP + nPSH == m_pcSlice->getSPS()->getPicHeightInLumaSamples() && xP > m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2)
+	  if (yP + nPSH == m_pcSlice->getSPS()->getPicHeightInLumaSamples() && xP >= m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2)
 	  {
 		  pcMvFieldNeighbours[(iCount << 1) + 1].getMv().setVer(-pcMvFieldNeighbours[(iCount << 1) + 1].getVer());
 	  }
@@ -2434,24 +2422,12 @@ Void TComDataCU::getInterMergeCandidates( UInt uiAbsPartIdx, UInt uiPUIdx, TComM
 #if  HUANGFU_MVPADDING_ABOVE
 	if (yP == 0 && xP > m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2 )
 	{
-		int position;
-		if (xP / 64 == (xP -1) / 64)
-		{
-			position = (xP - m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64;
+			int position;		
+			position = (xP-1 - m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64;
 			pcCUAboveLeft = m_pcPic->getCtu(position);
 			uiAboveLeftPartIdx = g_auiRasterToZscan[((xP - 1 - m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) % 64) / 4];
 			isAvailableB2 = pcCUAboveLeft &&
 				pcCUAboveLeft->isInter(uiAboveLeftPartIdx);
-		}
-		else
-		{
-			position = (xP - m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64 - 1;//不在同一个CTU下了
-			pcCUAboveLeft = m_pcPic->getCtu(position);
-			uiAboveLeftPartIdx = g_auiRasterToZscan[15];
-			isAvailableB2 = pcCUAboveLeft &&
-				pcCUAboveLeft->isInter(uiAboveLeftPartIdx);
-
-		}
 	}
 
 #endif
@@ -2474,7 +2450,7 @@ Void TComDataCU::getInterMergeCandidates( UInt uiAbsPartIdx, UInt uiPUIdx, TComM
       {
         TComDataCU::getMvField( pcCUAboveLeft, uiAboveLeftPartIdx, REF_PIC_LIST_1, pcMvFieldNeighbours[(iCount<<1)+1] );
 #if  HUANGFU_MVPADDING_ABOVE
-		if (yP == 0 && xP > m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2)
+		if (yP == 0 && xP > m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2 )
 
 		{
 			pcMvFieldNeighbours[(iCount << 1) + 1].getMv().setVer(-pcMvFieldNeighbours[(iCount << 1) + 1].getVer());
@@ -2603,31 +2579,16 @@ Void TComDataCU::getInterMergeCandidates( UInt uiAbsPartIdx, UInt uiPUIdx, TComM
 	  uiAbsPartAddr_left = g_auiRasterToZscan[((yP + nPSH - 1) % 64) / 4 * 16 + 15];
 	  if (yP - 1 > 0)
 	  {
-		  if (yP / 64 == (yP - 1) / 64)
-		  {
 			  ctuRsAddr_leftabove = (yP - 1) / 64 * (m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 64) + (m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 64) - 1;
 			  uiAbsPartAddr_leftabove = g_auiRasterToZscan[((yP - 1) % 64) / 4 * 16 + 15];
-		  }
-		  else
-		  {
-			  ctuRsAddr_leftabove = (yP - 1) / 64 * (m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 64) + (m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 64) - 1;
-			  uiAbsPartAddr_leftabove = g_auiRasterToZscan[255];
-		  }
+		 
+		  
 	  }
 	  if (yP + nPSH < m_pcSlice->getSPS()->getPicHeightInLumaSamples())
 	  {
-		  if ((yP + nPSH) / 64 == yP / 64)
-		  {
 			  ctuRsAddr_leftbellow = (yP + nPSH) / 64 * (m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 64) + (m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 64) - 1;
 			  uiAbsPartAddr_leftbellow = g_auiRasterToZscan[((yP + nPSH ) % 64) / 4 * 16 + 15];
-		  }
-		  else
-		  {
-			  ctuRsAddr_leftbellow = (yP + nPSH) / 64 * (m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 64) + (m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 64) - 1;
-			  uiAbsPartAddr_leftbellow = g_auiRasterToZscan[ 15];
-
-		  }
-
+		  
 	  }
 
 
@@ -2686,7 +2647,7 @@ Void TComDataCU::getInterMergeCandidates( UInt uiAbsPartIdx, UInt uiPUIdx, TComM
   }
 #endif
 #if HUANGFU_MVPADDING_ABOVE
-  if (yP == 0 && xP + nPSW<m_pcSlice->getSPS()->getPicWidthInLumaSamples() /2&& xP)//此时的策略是将上方的仅仅只拿一个过来，从above到aboveright最后是leftabove
+  if (yP == 0 && xP + nPSW<=m_pcSlice->getSPS()->getPicWidthInLumaSamples() /2)//此时的策略是将上方的仅仅只拿一个过来，从above到aboveright最后是leftabove
   {
 	  TComMv cColMv;
 	  Int iRefIdx;
@@ -2699,30 +2660,20 @@ Void TComDataCU::getInterMergeCandidates( UInt uiAbsPartIdx, UInt uiPUIdx, TComM
 	  Int uiAbsPartAddr_aboveleft = 0;
 	  Int uiAbsPartAddr_aboveright = 0;
 	  iRefIdx = 0;
-	  if (xP / 64 == (xP - 1) / 64)
+	  if ( (xP - 1)>=0)
 	  {
-		  ctuRsAddr_aboveleft = (xP + m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64;
+		  ctuRsAddr_aboveleft = (xP - 1 + m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64 ;
 		  uiAbsPartAddr_aboveleft = g_auiRasterToZscan[((xP - 1 + m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) % 64) / 4];
 	  }
-	  else
-	  {
-		  ctuRsAddr_aboveleft = (xP + m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64 - 1;//不在同一个CTU下了
-		  uiAbsPartAddr_aboveleft = g_auiRasterToZscan[15];
+	 
 
-	  }
-
-	  if (xP / 64 == (xP + nPSW) / 64)
+	  if ((xP + nPSW) <m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2)
 	  {
-		  ctuRsAddr_aboveright = (xP + m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64;
+		  ctuRsAddr_aboveright = (xP + nPSW + m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64;
 		  uiAbsPartAddr_aboveright = g_auiRasterToZscan[((xP + nPSW + m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) % 64) / 4];
 	  }
-	  else
-	  {
-		  ctuRsAddr_aboveright = (xP + m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64 + 1;//不在同一个CTU下，比当前CTU靠右
-		  uiAbsPartAddr_aboveright = 0;
-	  }
-
-	  ctuRsAddr_above = (xP +m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64;
+	
+	  ctuRsAddr_above = (xP + nPSW - 1 + m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64;
 	  uiAbsPartAddr_above = g_auiRasterToZscan[((xP + nPSW - 1 + m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) % 64) / 4];
 
 
@@ -2785,202 +2736,42 @@ Void TComDataCU::getInterMergeCandidates( UInt uiAbsPartIdx, UInt uiPUIdx, TComM
   {
 	  return;
   }
-  if (yP == 0 && xP + nPSW == m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2 )//此时的策略是将上方的仅仅只拿一个过来，从above到leftabove.没有了aboveright
-  {
 
-	  TComMv cColMv;
-	  Int iRefIdx;
-	  Int ctuRsAddr_above = -1;
-	  Int ctuRsAddr_aboveleft = -1;
-
-
-	  Int uiAbsPartAddr_above = 0;
-	  Int uiAbsPartAddr_aboveleft = 0;
-	  iRefIdx = 0;
-
-
-	  if (xP / 64 == (xP - 1) / 64)
-	  {
-		  ctuRsAddr_aboveleft = (xP + m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64;
-		  uiAbsPartAddr_aboveleft = g_auiRasterToZscan[((xP - 1 + m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) % 64) / 4];
-	  }
-	  else
-	  {
-		  ctuRsAddr_aboveleft = (xP + m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64 - 1;//不在同一个CTU下了
-		  uiAbsPartAddr_aboveleft = g_auiRasterToZscan[15];
-
-	  }
-
-
-	  ctuRsAddr_above = (xP + m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64;
-	  uiAbsPartAddr_above = g_auiRasterToZscan[((xP + nPSW - 1 + m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) % 64) / 4];
-
-
-
-	  Bool bExistMV = false;
-	  Int dir = 0;
-	  UInt uiArrayAddr = iCount;
-	  //xDeriveCenterIdx(uiPUIdx, uiPartIdxCenter);
-	  bExistMV = ctuRsAddr_above >= 0 && xGetColMVP(REF_PIC_LIST_0, ctuRsAddr_above, uiAbsPartAddr_above, cColMv, iRefIdx);
-	  if (bExistMV == false)
-	  {
-			  bExistMV = ctuRsAddr_aboveleft >= 0 && xGetColMVP(REF_PIC_LIST_0, ctuRsAddr_aboveleft, uiAbsPartAddr_aboveleft, cColMv, iRefIdx);
-	  }
-	  if (bExistMV)
-	  {
-		  dir |= 1;
-		  pcMvFieldNeighbours[2 * uiArrayAddr].setMvField(cColMv, iRefIdx);
-
-		  pcMvFieldNeighbours[2 * uiArrayAddr].getMv().setVer(-pcMvFieldNeighbours[2 * uiArrayAddr].getVer());
-	  }
-
-	  if (getSlice()->isInterB())
-	  {
-		  bExistMV = ctuRsAddr_above >= 0 && xGetColMVP(REF_PIC_LIST_1, ctuRsAddr_above, uiAbsPartAddr_above, cColMv, iRefIdx);
-		  if (bExistMV == false)
-		  {
-				  bExistMV = ctuRsAddr_aboveleft >= 0 && xGetColMVP(REF_PIC_LIST_1, ctuRsAddr_aboveleft, uiAbsPartAddr_aboveleft, cColMv, iRefIdx);
-		  }
-		  if (bExistMV)
-		  {
-			  dir |= 2;
-			  pcMvFieldNeighbours[2 * uiArrayAddr + 1].setMvField(cColMv, iRefIdx);
-			  pcMvFieldNeighbours[2 * uiArrayAddr + 1].getMv().setVer(-pcMvFieldNeighbours[2 * uiArrayAddr + 1].getVer());
-
-		  }
-	  }
-
-	  if (dir != 0)
-	  {
-		  puhInterDirNeighbours[uiArrayAddr] = dir;
-		  abCandIsInter[uiArrayAddr] = true;
-
-		  if (mrgCandIdx == iCount)
-		  {
-			  return;
-		  }
-		  iCount++;
-	  }
-  }
-  if (iCount == getSlice()->getMaxNumMergeCand())
-  {
-	  return;
-  }
-
-  if (yP==0&&xP==0)//此时不存在左上角上的MV
-  {
-	  TComMv cColMv;
-	  Int iRefIdx;
-	  Int ctuRsAddr_above = -1;
-	  Int ctuRsAddr_aboveright = -1;
-
-
-	  Int uiAbsPartAddr_above = 0;
-	  Int uiAbsPartAddr_aboveright = 0;
-	  iRefIdx = 0;
-
-
-	  if (xP / 64 == (xP + nPSW) / 64)
-	  {
-		  ctuRsAddr_aboveright = (xP +m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64;
-		  uiAbsPartAddr_aboveright = g_auiRasterToZscan[((xP + nPSW + m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) % 64) / 4];
-	  }
-	  else
-	  {
-		  ctuRsAddr_aboveright = (xP +m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64 + 1;//不在同一个CTU下，比当前CTU靠右
-		  uiAbsPartAddr_aboveright = 0;
-	  }
-
-	  ctuRsAddr_above = (xP + m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64;
-	  uiAbsPartAddr_above = g_auiRasterToZscan[((xP + nPSW - 1 + m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) % 64) / 4];
-
-
-
-	  Bool bExistMV = false;
-	  Int dir = 0;
-	  UInt uiArrayAddr = iCount;
-	  //xDeriveCenterIdx(uiPUIdx, uiPartIdxCenter);
-	  bExistMV = ctuRsAddr_above >= 0 && xGetColMVP(REF_PIC_LIST_0, ctuRsAddr_above, uiAbsPartAddr_above, cColMv, iRefIdx);
-	  if (bExistMV == false)
-	  {
-		  bExistMV = ctuRsAddr_aboveright >= 0 && xGetColMVP(REF_PIC_LIST_0, ctuRsAddr_aboveright, uiAbsPartAddr_aboveright, cColMv, iRefIdx);
-	  }
-	  if (bExistMV)
-	  {
-		  dir |= 1;
-		  pcMvFieldNeighbours[2 * uiArrayAddr].setMvField(cColMv, iRefIdx);
-
-		  pcMvFieldNeighbours[2 * uiArrayAddr].getMv().setVer(-pcMvFieldNeighbours[2 * uiArrayAddr].getVer());
-	  }
-
-	  if (getSlice()->isInterB())
-	  {
-		  bExistMV = ctuRsAddr_above >= 0 && xGetColMVP(REF_PIC_LIST_1, ctuRsAddr_above, uiAbsPartAddr_above, cColMv, iRefIdx);
-		  if (bExistMV == false)
-		  {
-			  bExistMV = ctuRsAddr_aboveright >= 0 && xGetColMVP(REF_PIC_LIST_1, ctuRsAddr_aboveright, uiAbsPartAddr_aboveright, cColMv, iRefIdx);
-		  }
-		  if (bExistMV)
-		  {
-			  dir |= 2;
-			  pcMvFieldNeighbours[2 * uiArrayAddr + 1].setMvField(cColMv, iRefIdx);
-			  pcMvFieldNeighbours[2 * uiArrayAddr + 1].getMv().setVer(-pcMvFieldNeighbours[2 * uiArrayAddr + 1].getVer());
-
-		  }
-	  }
-
-	  if (dir != 0)
-	  {
-		  puhInterDirNeighbours[uiArrayAddr] = dir;
-		  abCandIsInter[uiArrayAddr] = true;
-
-		  if (mrgCandIdx == iCount)
-		  {
-			  return;
-		  }
-		  iCount++;
-	  }
-
-
-  }
-  if (iCount == getSlice()->getMaxNumMergeCand())
-  {
-	  return;
-  }
-
-
-  if (yP + nPSH == m_pcSlice->getSPS()->getPicHeightInLumaSamples() && xP < m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2&&xP)
+  if (yP + nPSH == m_pcSlice->getSPS()->getPicHeightInLumaSamples() && xP < m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2)//对于左下方的添加一个时间阈的运动矢量；
   {
 	  TComMv cColMv;
 	  Int iRefIdx;
 	  Int ctuRsAddr_leftbellow = -1;
+	  Int ctuRsAddr_rightbellow = -1;
+
 
 
 	  Int uiAbsPartAddr_leftbellow = 0;
+	  Int uiAbsPartAddr_rightbellow = 0;
+
 	  iRefIdx = 0;
 
 
-	  if (xP / 64 == (xP - 1) / 64)
+	  if ( (xP - 1)>=0)
 	  {
-		  ctuRsAddr_leftbellow = (xP+m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64;
+		  ctuRsAddr_leftbellow = (xP-1 + m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64 + yP / 64 * (m_pcSlice->getSPS()->getPicWidthInLumaSamples()/64);
 		  uiAbsPartAddr_leftbellow = g_auiRasterToZscan[((xP - 1 + m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) % 64) / 4 + 240];
 	  }
-	  else
-	  {
-		  ctuRsAddr_leftbellow = (xP + m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64 - 1;//不在同一个CTU下了
-		  uiAbsPartAddr_leftbellow = g_auiRasterToZscan[255];
+	 
 
-	  }
+	  ctuRsAddr_rightbellow = (xP + nPSW - 1 + m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64 + yP / 64 * (m_pcSlice->getSPS()->getPicWidthInLumaSamples()/ 64);
 
-
-
-
+	  uiAbsPartAddr_rightbellow = g_auiRasterToZscan[((xP + nPSW - 1 + m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) % 64) / 4 + 240];
 
 	  Bool bExistMV = false;
 	  Int dir = 0;
 	  UInt uiArrayAddr = iCount;
 	  //xDeriveCenterIdx(uiPUIdx, uiPartIdxCenter);
-	  bExistMV = ctuRsAddr_leftbellow >= 0 && xGetColMVP(REF_PIC_LIST_0, ctuRsAddr_leftbellow, uiAbsPartAddr_leftbellow, cColMv, iRefIdx);
+	  bExistMV = ctuRsAddr_rightbellow >= 0 && xGetColMVP(REF_PIC_LIST_0, ctuRsAddr_rightbellow, uiAbsPartAddr_rightbellow, cColMv, iRefIdx);
+	  if (!bExistMV)
+	  {
+		  bExistMV = ctuRsAddr_leftbellow >= 0 && xGetColMVP(REF_PIC_LIST_0, ctuRsAddr_leftbellow, uiAbsPartAddr_leftbellow, cColMv, iRefIdx);
+	  }
 	  if (bExistMV)
 	  {
 		  dir |= 1;
@@ -2991,7 +2782,11 @@ Void TComDataCU::getInterMergeCandidates( UInt uiAbsPartIdx, UInt uiPUIdx, TComM
 
 	  if (getSlice()->isInterB())
 	  {
-		  bExistMV = ctuRsAddr_leftbellow >= 0 && xGetColMVP(REF_PIC_LIST_1, ctuRsAddr_leftbellow, uiAbsPartAddr_leftbellow, cColMv, iRefIdx);
+		  bExistMV = ctuRsAddr_rightbellow >= 0 && xGetColMVP(REF_PIC_LIST_1, ctuRsAddr_rightbellow, uiAbsPartAddr_rightbellow, cColMv, iRefIdx);
+		  if (!bExistMV)
+		  {
+			  bExistMV = ctuRsAddr_leftbellow >= 0 && xGetColMVP(REF_PIC_LIST_1, ctuRsAddr_leftbellow, uiAbsPartAddr_leftbellow, cColMv, iRefIdx);
+		  }
 		  if (bExistMV)
 		  {
 			  dir |= 2;
@@ -3210,26 +3005,21 @@ Void TComDataCU::fillMvpCand ( const UInt partIdx, const UInt partAddr, const Re
     const TComDataCU* tmpCU = getPUBelowLeft(idx, partIdxLB);
     isScaledFlagLX = (tmpCU != NULL) && (tmpCU->isInter(idx));
 #if HUANGFU_MVPADDING_ABOVE
-	if (yP + nPSH == m_pcSlice->getSPS()->getPicHeightInLumaSamples() && xP > m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2)
+	if (yP + nPSH == m_pcSlice->getSPS()->getPicHeightInLumaSamples() && xP > m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2)//对于右下方的一部分进行操作
 	{
 		int position;
 		int uiLeftBottomPartIdx = 0;
-		if (xP / 64 == (xP - 1) / 64)
-		{
-			position = (xP - m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64;
+		position = (xP - 1 - m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64 + yP / 64 * (m_pcSlice->getSPS()->getPicWidthInLumaSamples()/64);//一定是指向最下面的一行CTU的，此处明显有误
 			tmpCU = m_pcPic->getCtu(position);
 			uiLeftBottomPartIdx = g_auiRasterToZscan[((xP - 1 - m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) % 64) / 4 + 240];
-
 			isScaledFlagLX = (tmpCU != NULL) && (tmpCU->isInter(uiLeftBottomPartIdx));
-
-		}
-		else
-		{
-			position = (xP - m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64 - 1;//不在同一个CTU下了
-			tmpCU = m_pcPic->getCtu(position);
-			uiLeftBottomPartIdx = g_auiRasterToZscan[255];
-			isScaledFlagLX = (tmpCU != NULL) && (tmpCU->isInter(uiLeftBottomPartIdx));
-		}
+			if (!isScaledFlagLX)
+			{
+				position = (xP+nPSW - 1 - m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64 + yP / 64 * (m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 64);//一定是指向最下面的一行CTU的，此处明显有误
+				tmpCU = m_pcPic->getCtu(position);
+				uiLeftBottomPartIdx = g_auiRasterToZscan[((xP + nPSW - 1 - m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) % 64) / 4 + 240];
+				isScaledFlagLX = (tmpCU != NULL) && (tmpCU->isInter(uiLeftBottomPartIdx));
+			}
 	}
 
 #endif
@@ -3389,7 +3179,7 @@ Void TComDataCU::fillMvpCand ( const UInt partIdx, const UInt partAddr, const Re
 
 
 #if HUANGFU_MVPADDING_ABOVE
-  else if (yP == 0 && xP > m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2 && xP + nPSW<m_pcSlice->getSPS()->getPicWidthInLumaSamples())
+  else if (yP == 0 && xP >= m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2)
   {
 	  {
 		  Bool bAdded = xAddMVPCandUnscaled_padding_above(*pInfo, eRefPicList, refIdx, xP, nPSW, MD_ABOVE_RIGHT);
@@ -3416,61 +3206,7 @@ Void TComDataCU::fillMvpCand ( const UInt partIdx, const UInt partAddr, const Re
 		  }
 	  }
   }
-  else if (yP == 0 && xP == m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2)
-  {
-	  {
-		  Bool bAdded = xAddMVPCandUnscaled_padding_above(*pInfo, eRefPicList, refIdx, xP, nPSW, MD_ABOVE_RIGHT);
-		  if (!bAdded)
-		  {
-			  bAdded = xAddMVPCandUnscaled_padding_above(*pInfo, eRefPicList, refIdx, xP, nPSW, MD_ABOVE);
-			  if (!bAdded)
-			  {
-				  xAddMVPCandUnscaled(*pInfo, eRefPicList, refIdx, partIdxLT, MD_ABOVE_LEFT);
-			  }
-		  }
-	  }
 
-	  if (!isScaledFlagLX)
-	  {
-		  Bool bAdded = xAddMVPCandWithScaling_padding_above(*pInfo, eRefPicList, refIdx, xP, nPSW, MD_ABOVE_RIGHT);
-		  if (!bAdded)
-		  {
-			  bAdded = xAddMVPCandWithScaling_padding_above(*pInfo, eRefPicList, refIdx, xP, nPSW, MD_ABOVE);
-			  if (!bAdded)
-			  {
-				  xAddMVPCandWithScaling(*pInfo, eRefPicList, refIdx, partIdxLT, MD_ABOVE_LEFT);
-			  }
-		  }
-	  }
-
-  }
-  else if (yP == 0 && xP + nPSW == m_pcSlice->getSPS()->getPicWidthInLumaSamples() && pInfo->iN < AMVP_MAX_NUM_CANDS)//此处需要思考是否应当添加？？？
-  {
-	  {
-		  Bool bAdded = xAddMVPCandUnscaled(*pInfo, eRefPicList, refIdx, partIdxRT, MD_ABOVE_RIGHT);
-		  if (!bAdded)
-		  {
-			  bAdded = xAddMVPCandUnscaled_padding_above(*pInfo, eRefPicList, refIdx, xP, nPSW, MD_ABOVE);
-			  if (!bAdded)
-			  {
-				  xAddMVPCandUnscaled_padding_above(*pInfo, eRefPicList, refIdx, xP, nPSW, MD_ABOVE_LEFT);
-			  }
-		  }
-	  }
-
-	  if (!isScaledFlagLX)
-	  {
-		  Bool bAdded = xAddMVPCandWithScaling(*pInfo, eRefPicList, refIdx, partIdxRT, MD_ABOVE_RIGHT);
-		  if (!bAdded)
-		  {
-			  bAdded = xAddMVPCandWithScaling_padding_above(*pInfo, eRefPicList, refIdx, xP, nPSW, MD_ABOVE);
-			  if (!bAdded)
-			  {
-				  xAddMVPCandWithScaling_padding_above(*pInfo, eRefPicList, refIdx, xP, nPSW, MD_ABOVE_LEFT);
-			  }
-		  }
-	  }
-  }
   else
   {
 	  {
@@ -3607,35 +3343,21 @@ Void TComDataCU::fillMvpCand ( const UInt partIdx, const UInt partAddr, const Re
 	  uiAbsPartAddr_left = g_auiRasterToZscan[((yP + nPSH - 1) % 64) / 4 * 16 + 15];
 	  if (yP - 1 > 0)
 	  {
-		  if (yP / 64 == (yP - 1) / 64)
-		  {
+		 
 			  ctuRsAddr_leftabove = (yP - 1) / 64 * (m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 64) + (m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 64) - 1;
 			  uiAbsPartAddr_leftabove = g_auiRasterToZscan[((yP - 1) % 64) / 4 * 16 + 15];
-		  }
-		  else
-		  {
-			  ctuRsAddr_leftabove = (yP - 1) / 64 * (m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 64) + (m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 64) - 1;
-			  uiAbsPartAddr_leftabove = g_auiRasterToZscan[255];
-
-		  }
+		 
 	  }
 	  if (yP + nPSH < m_pcSlice->getSPS()->getPicHeightInLumaSamples())
 	  {
-		  if ((yP + nPSH) / 64 == yP / 64)
-		  {
+		  
 			  ctuRsAddr_leftbellow = (yP + nPSH) / 64 * (m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 64) + (m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 64) - 1;
 			  uiAbsPartAddr_leftbellow = g_auiRasterToZscan[((yP + nPSH) % 64) / 4 * 16 + 15];
-		  }
-		  else
-		  {
-			  ctuRsAddr_leftbellow = (yP + nPSH) / 64 * (m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 64) + (m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 64) - 1;
-			  uiAbsPartAddr_leftbellow = g_auiRasterToZscan[15];
-
-		  }
+		
 
 	  }
 	  Bool bExistMV = false;
-	  bExistMV = ctuRsAddr_leftbellow >= 0 && xGetColMVP(eRefPicList, ctuRsAddr_leftbellow, uiAbsPartAddr_left, cColMv, iRefIdx);
+	  bExistMV = ctuRsAddr_leftbellow >= 0 && xGetColMVP(eRefPicList, ctuRsAddr_leftbellow, uiAbsPartAddr_leftbellow, cColMv, iRefIdx);
 	  if (bExistMV)
 	  {
 		  pInfo->m_acMvCand[pInfo->iN++] = cColMv;
@@ -3661,7 +3383,7 @@ Void TComDataCU::fillMvpCand ( const UInt partIdx, const UInt partAddr, const Re
   }
 #endif
 #if HUANGFU_MVPADDING_ABOVE
-  if (yP == 0 && xP + nPSW<m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2 && xP&&pInfo->iN < AMVP_MAX_NUM_CANDS)//此时的策略是将上方的仅仅只拿一个过来，从aboveright到above最后是leftabove
+  if (yP == 0 && xP + nPSW<=m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2 &&pInfo->iN < AMVP_MAX_NUM_CANDS)//此时的策略是将上方的仅仅只拿一个过来，从aboveright到above最后是leftabove
   {
 	  TComMv cColMv;
 	  Int iRefIdx = refIdx;
@@ -3674,30 +3396,20 @@ Void TComDataCU::fillMvpCand ( const UInt partIdx, const UInt partAddr, const Re
 	  Int uiAbsPartAddr_aboveleft = 0;
 	  Int uiAbsPartAddr_aboveright = 0;
 	 
-	  if (xP / 64 == (xP - 1) / 64)
+	  if ((xP - 1) >=0)
 	  {
-		  ctuRsAddr_aboveleft = (xP + m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64;
+		  ctuRsAddr_aboveleft = (xP -1+ m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64;
 		  uiAbsPartAddr_aboveleft = g_auiRasterToZscan[((xP - 1 + m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) % 64) / 4];
 	  }
-	  else
-	  {
-		  ctuRsAddr_aboveleft = (xP + m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64 - 1;//不在同一个CTU下了
-		  uiAbsPartAddr_aboveleft = g_auiRasterToZscan[15];
 
-	  }
-
-	  if (xP / 64 == (xP + nPSW) / 64)
+	  if ((xP + nPSW) < m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2)
 	  {
-		  ctuRsAddr_aboveright = (xP + m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64;
+		  ctuRsAddr_aboveright = (xP + nPSW + m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64;
 		  uiAbsPartAddr_aboveright = g_auiRasterToZscan[((xP + nPSW + m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) % 64) / 4];
 	  }
-	  else
-	  {
-		  ctuRsAddr_aboveright = (xP + m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64 + 1;//不在同一个CTU下，比当前CTU靠右
-		  uiAbsPartAddr_aboveright = 0;
-	  }
+	
 
-	  ctuRsAddr_above = (xP + m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64;
+	  ctuRsAddr_above = (xP + nPSW - 1 + m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64;
 	  uiAbsPartAddr_above = g_auiRasterToZscan[((xP + nPSW - 1 + m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) % 64) / 4];
 
 
@@ -3736,134 +3448,24 @@ Void TComDataCU::fillMvpCand ( const UInt partIdx, const UInt partAddr, const Re
 
   }
   
-
-
-  if (yP == 0 && xP + nPSW==m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2&&pInfo->iN < AMVP_MAX_NUM_CANDS)//此时的策略是将上方的仅仅只拿一个过来，从aboveright到above最后是leftabove
-  {
-	  TComMv cColMv;
-	  Int iRefIdx = refIdx;
-	  Int ctuRsAddr_above = -1;
-	  Int ctuRsAddr_aboveleft = -1;
-	 
-
-
-	  Int uiAbsPartAddr_above = 0;
-	  Int uiAbsPartAddr_aboveleft = 0;
-	 
-
-	  if (xP / 64 == (xP - 1) / 64)
-	  {
-		  ctuRsAddr_aboveleft = (xP + m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64;
-		  uiAbsPartAddr_aboveleft = g_auiRasterToZscan[((xP - 1 + m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) % 64) / 4];
-	  }
-	  else
-	  {
-		  ctuRsAddr_aboveleft = (xP + m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64 - 1;//不在同一个CTU下了
-		  uiAbsPartAddr_aboveleft = g_auiRasterToZscan[15];
-
-	  }
-
-	 
-	  ctuRsAddr_above = (xP + m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64;
-	  uiAbsPartAddr_above = g_auiRasterToZscan[((xP + nPSW - 1 + m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) % 64) / 4];
-
-
-
-	  Bool bExistMV = false;
-		  bExistMV = ctuRsAddr_above >= 0 && xGetColMVP(eRefPicList, ctuRsAddr_above, uiAbsPartAddr_above, cColMv, iRefIdx);
-		  if (bExistMV)
-		  {
-			  pInfo->m_acMvCand[pInfo->iN] = cColMv;
-			  pInfo->m_acMvCand[pInfo->iN].setVer(-pInfo->m_acMvCand[pInfo->iN].getVer());
-			  pInfo->iN++;
-		  }
-		  else
-		  {
-			  bExistMV = ctuRsAddr_aboveleft >= 0 && xGetColMVP(eRefPicList, uiAbsPartAddr_aboveleft, uiAbsPartAddr_aboveleft, cColMv, iRefIdx);
-			  if (bExistMV)
-			  {
-				  pInfo->m_acMvCand[pInfo->iN] = cColMv;
-				  pInfo->m_acMvCand[pInfo->iN].setVer(-pInfo->m_acMvCand[pInfo->iN].getVer());
-				  pInfo->iN++;
-			  }
-
-		  }
-  }
-
-  if (yP == 0 && !xP&&pInfo->iN < AMVP_MAX_NUM_CANDS)//此时的策略是将上方的仅仅只拿一个过来，从aboveright到above最后是leftabove
-  {
-	  TComMv cColMv;
-	  Int iRefIdx = refIdx;
-	  Int ctuRsAddr_above = -1;
-	  Int ctuRsAddr_aboveright = -1;
-
-
-	  Int uiAbsPartAddr_above = 0;
-	  Int uiAbsPartAddr_aboveright = 0;
-
-
-	  if (xP / 64 == (xP + nPSW) / 64)
-	  {
-		  ctuRsAddr_aboveright = (xP + m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64;
-		  uiAbsPartAddr_aboveright = g_auiRasterToZscan[((xP + nPSW + m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) % 64) / 4];
-	  }
-	  else
-	  {
-		  ctuRsAddr_aboveright = (xP + m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64 + 1;//不在同一个CTU下，比当前CTU靠右
-		  uiAbsPartAddr_aboveright = 0;
-	  }
-
-	  ctuRsAddr_above = (xP + m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64;
-	  uiAbsPartAddr_above = g_auiRasterToZscan[((xP + nPSW - 1 + m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) % 64) / 4];
-
-
-
-	  Bool bExistMV = false;
-	  bExistMV = ctuRsAddr_aboveright >= 0 && xGetColMVP(eRefPicList, ctuRsAddr_aboveright, uiAbsPartAddr_aboveright, cColMv, iRefIdx);
-	  if (bExistMV)
-	  {
-		  pInfo->m_acMvCand[pInfo->iN] = cColMv;
-		  pInfo->m_acMvCand[pInfo->iN].setVer(-pInfo->m_acMvCand[pInfo->iN].getVer());
-		  pInfo->iN++;
-
-	  }
-	  else
-	  {
-		  bExistMV = ctuRsAddr_above >= 0 && xGetColMVP(eRefPicList, ctuRsAddr_above, uiAbsPartAddr_above, cColMv, iRefIdx);
-		  if (bExistMV)
-		  {
-			  pInfo->m_acMvCand[pInfo->iN] = cColMv;
-			  pInfo->m_acMvCand[pInfo->iN].setVer(-pInfo->m_acMvCand[pInfo->iN].getVer());
-			  pInfo->iN++;
-		  }
-		  
-
-	  }
-
-  }
-  if (yP + nPSH == m_pcSlice->getSPS()->getPicHeightInLumaSamples() && xP < m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2 && xP&&pInfo->iN < AMVP_MAX_NUM_CANDS)
+  if (yP + nPSH == m_pcSlice->getSPS()->getPicHeightInLumaSamples() && xP < m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2&&pInfo->iN < AMVP_MAX_NUM_CANDS)
   {
 	  TComMv cColMv;
 	  Int iRefIdx = refIdx;
 	  Int ctuRsAddr_leftbellow = -1;
+	  Int ctuRsAddr_rightbellow = -1;
 
 
 	  Int uiAbsPartAddr_leftbellow = 0;
-
-	  if (xP / 64 == (xP - 1) / 64)
+	  Int uiAbsPartAddr_rightbellow = 0;
+	  if ((xP - 1) >= 0)
 	  {
-		  ctuRsAddr_leftbellow = (xP + m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64;
+		  ctuRsAddr_leftbellow = (xP - 1 + m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64 + yP / 64 * (m_pcSlice->getSPS()->getPicWidthInLumaSamples()/64);
 		  uiAbsPartAddr_leftbellow = g_auiRasterToZscan[((xP - 1 + m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) % 64) / 4 + 240];
 	  }
-	  else
-	  {
-		  ctuRsAddr_leftbellow = (xP + m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64 - 1;//不在同一个CTU下了
-		  uiAbsPartAddr_leftbellow = g_auiRasterToZscan[255];
-
-	  }
-
-	
-
+	 
+	  ctuRsAddr_rightbellow = (xP + nPSW - 1 + m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64 + yP / 64 * (m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 64);
+	  uiAbsPartAddr_rightbellow = g_auiRasterToZscan[((xP+nPSW - 1 + m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) % 64) / 4 + 240];
 
 	  Bool bExistMV = false;
 	  bExistMV = ctuRsAddr_leftbellow >= 0 && xGetColMVP(eRefPicList, ctuRsAddr_leftbellow, uiAbsPartAddr_leftbellow, cColMv, iRefIdx);
@@ -3872,6 +3474,18 @@ Void TComDataCU::fillMvpCand ( const UInt partIdx, const UInt partAddr, const Re
 		  pInfo->m_acMvCand[pInfo->iN] = cColMv;
 		  pInfo->m_acMvCand[pInfo->iN].setVer(-pInfo->m_acMvCand[pInfo->iN].getVer());
 		  pInfo->iN++;
+
+	  }
+	  else
+	  {
+		  bExistMV = ctuRsAddr_rightbellow >= 0 && xGetColMVP(eRefPicList, ctuRsAddr_rightbellow, uiAbsPartAddr_rightbellow, cColMv, iRefIdx);
+		  if (bExistMV)
+		  {
+			  pInfo->m_acMvCand[pInfo->iN] = cColMv;
+			  pInfo->m_acMvCand[pInfo->iN].setVer(-pInfo->m_acMvCand[pInfo->iN].getVer());
+			  pInfo->iN++;
+
+		  }
 
 	  }
 	 
@@ -4125,28 +3739,15 @@ Bool TComDataCU::xAddMVPCandUnscaled_padding(AMVPInfo &info, const RefPicList eR
 {
 	const Int        currRefPOC = m_pcSlice->getRefPic(eRefPicList, iRefIdx)->getPOC();
 	const RefPicList eRefPicList2nd = (eRefPicList == REF_PIC_LIST_0) ? REF_PIC_LIST_1 : REF_PIC_LIST_0;
-
 	const TComDataCU *pcCUAboveRight = NULL;
-	UInt uiAboveRightPartIdx = 0;
-	
+	UInt uiAboveRightPartIdx = 0;	
 	if (yP - 1 >= 0)
 	{
-		int position;
-		if ((yP - 1) / 64 == yP / 64)
-		{
+		    int position;
 			position = (yP - 1) / 64 * (m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 64);
 			pcCUAboveRight = m_pcPic->getCtu(position);
-			uiAboveRightPartIdx = g_auiRasterToZscan[((yP - 1) % 64) / 4 * 16];
-		}
-		else
-		{
-			position = (yP - 1) / 64 * (m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 64);
-			pcCUAboveRight = m_pcPic->getCtu(position);
-			uiAboveRightPartIdx = g_auiRasterToZscan[240];
-
-		}
+			uiAboveRightPartIdx = g_auiRasterToZscan[((yP - 1) % 64) / 4 * 16];		
 	}
-
 	for (Int predictorSource = 0; predictorSource<2; predictorSource++) // examine the indicated reference picture list, then if not available, examine the other list.
 	{
 		if (pcCUAboveRight == NULL)break;
@@ -4159,10 +3760,8 @@ Bool TComDataCU::xAddMVPCandUnscaled_padding(AMVPInfo &info, const RefPicList eR
 			return true;
 		}
 	}
-
 	const TComDataCU *pcCUbellowRight = NULL;
 	UInt uibellowRightPartIdx = 0;
-	
 	if (yP/64== (yP+nPSH)/64)
 	{
 		int position;
@@ -4170,7 +3769,6 @@ Bool TComDataCU::xAddMVPCandUnscaled_padding(AMVPInfo &info, const RefPicList eR
 		pcCUbellowRight = m_pcPic->getCtu(position);
 		uibellowRightPartIdx = g_auiRasterToZscan[((yP + nPSH) % 64) / 4 * 16];
 	}
-
 	for (Int predictorSource = 0; predictorSource<2; predictorSource++) // examine the indicated reference picture list, then if not available, examine the other list.
 	{
 		if (pcCUbellowRight == NULL)break;
@@ -4183,14 +3781,8 @@ Bool TComDataCU::xAddMVPCandUnscaled_padding(AMVPInfo &info, const RefPicList eR
 			return true;
 		}
 	}
-
-
-
-
 	const TComDataCU *pcCURight = NULL;
-	UInt uiRightPartIdx = 0;
-	
-	
+	UInt uiRightPartIdx = 0;	
 	{
 		int position;
 		position = (yP+nPSH - 1) / 64 * (m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 64);
@@ -4209,12 +3801,7 @@ Bool TComDataCU::xAddMVPCandUnscaled_padding(AMVPInfo &info, const RefPicList eR
 			return true;
 		}
 	}
-
-
-
-
 	return false;
-
 }
 
 Bool TComDataCU::xAddMVPCandWithScaling_padding(AMVPInfo &info, const RefPicList eRefPicList, const Int iRefIdx, const Int yP, const UInt nPSH) const
@@ -4233,20 +3820,11 @@ Bool TComDataCU::xAddMVPCandWithScaling_padding(AMVPInfo &info, const RefPicList
 
 	if (yP - 1 >= 0)
 	{
-		int position;
-		if ((yP - 1) / 64 == yP / 64)
-		{
+			int position;
+	
 			position = (yP - 1) / 64 * (m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 64);
 			pcCUAboveRight = m_pcPic->getCtu(position);
 			uiAboveRightPartIdx = g_auiRasterToZscan[((yP - 1) % 64) / 4 * 16];
-		}
-		else
-		{
-			position = (yP - 1) / 64 * (m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 64);
-			pcCUAboveRight = m_pcPic->getCtu(position);
-			uiAboveRightPartIdx = g_auiRasterToZscan[240];
-
-		}
 	}
 
 
@@ -4406,7 +3984,7 @@ Bool    TComDataCU::xAddMVPCandUnscaled_padding_above(AMVPInfo &info, const RefP
 	case MD_ABOVE:
 	{
 		int position;
-		position = (xP - m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64;
+		position = (xP + nPSW - 1 - m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64;
 		neibCU = m_pcPic->getCtu(position);
 		neibPUPartIdx = g_auiRasterToZscan[((xP + nPSW - 1 - m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) % 64) / 4];
 		
@@ -4415,56 +3993,42 @@ Bool    TComDataCU::xAddMVPCandUnscaled_padding_above(AMVPInfo &info, const RefP
 	case MD_ABOVE_RIGHT:
 	{
 		int position;
-		if (xP / 64 == (xP + nPSW) / 64)
+		if ((xP + nPSW)< m_pcSlice->getSPS()->getPicWidthInLumaSamples())
 		{
-			position = (xP - m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64;
+			position = (xP + nPSW - m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64;
 			neibCU = m_pcPic->getCtu(position);
 			neibPUPartIdx = g_auiRasterToZscan[((xP + nPSW - m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) % 64) / 4];
 		}
-		else
-		{
-			position = (xP - m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64 + 1;//不在同一个CTU下，比当前CTU靠右
-			neibCU = m_pcPic->getCtu(position);
-			neibPUPartIdx = 0;
-
-		}		
 		break;
 	}
 	case MD_BELOW_LEFT:
 	{
 
-		int position;
-		if (xP / 64 == (xP - 1) / 64)
-		{
-			position = (xP - m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64;
+			int position;
+			position = (xP - 1 - m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64 + (m_pcSlice->getSPS()->getPicHeightInLumaSamples() / 64 - 1)* (m_pcSlice->getSPS()->getPicWidthInLumaSamples()/64);
 			neibCU = m_pcPic->getCtu(position);
 			neibPUPartIdx = g_auiRasterToZscan[((xP - 1 - m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) % 64) / 4 + 240];
-		}
-		else
-		{
-			position = (xP - m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64 - 1;//不在同一个CTU下了
-			neibCU = m_pcPic->getCtu(position);
-			neibPUPartIdx = g_auiRasterToZscan[255];
 
-		}
+			if (neibCU == NULL)
+			{
+				position = (xP + nPSW - 1 - m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64 + (m_pcSlice->getSPS()->getPicHeightInLumaSamples() / 64 - 1)* (m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 64);;
+				neibCU = m_pcPic->getCtu(position);
+				neibPUPartIdx = g_auiRasterToZscan[((xP + nPSW - 1 - m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) % 64) / 4 + 240];
+
+			}
+		
 		break;
 	}
 	case MD_ABOVE_LEFT:
 	{
 		int position;
-		if (xP / 64 == (xP - 1) / 64)
+		if ((xP - 1) >= m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2)
 		{
-			position = (xP - m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64;
+			position = (xP -1- m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64;
 			neibCU = m_pcPic->getCtu(position);
 			neibPUPartIdx = g_auiRasterToZscan[((xP - 1 - m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) % 64) / 4];
 		}
-		else
-		{
-			position = (xP - m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64 - 1;//不在同一个CTU下了
-			neibCU = m_pcPic->getCtu(position);
-			neibPUPartIdx = g_auiRasterToZscan[15];
-
-		}
+		
 		break;
 	}
 	default:
@@ -4513,7 +4077,7 @@ Bool   TComDataCU::xAddMVPCandWithScaling_padding_above(AMVPInfo &info, const Re
 	case MD_ABOVE:
 	{
 		int position;
-		position = (xP - m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64;
+		position = (xP + nPSW - 1 - m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64;
 		neibCU = m_pcPic->getCtu(position);
 		neibPUPartIdx = g_auiRasterToZscan[((xP + nPSW - 1 - m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) % 64) / 4];
 
@@ -4521,57 +4085,44 @@ Bool   TComDataCU::xAddMVPCandWithScaling_padding_above(AMVPInfo &info, const Re
 	}
 	case MD_ABOVE_RIGHT:
 	{
-		int position;
-		if (xP / 64 == (xP + nPSW) / 64)
-		{
-			position = (xP - m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64;
-			neibCU = m_pcPic->getCtu(position);
-			neibPUPartIdx = g_auiRasterToZscan[((xP + nPSW - m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) % 64) / 4];
-		}
-		else
-		{
-			position = (xP - m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64 + 1;//不在同一个CTU下，比当前CTU靠右
-			neibCU = m_pcPic->getCtu(position);
-			neibPUPartIdx = 0;
-
-		}
+			int position;
+			if (xP + nPSW < m_pcSlice->getSPS()->getPicWidthInLumaSamples())
+			{
+				position = (xP + nPSW - m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64;
+				neibCU = m_pcPic->getCtu(position);
+				neibPUPartIdx = g_auiRasterToZscan[((xP + nPSW - m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) % 64) / 4];
+			}		
+		
 		break;
 	}
 	case MD_BELOW_LEFT:
 	{
 
-		int position;
-		if (xP / 64 == (xP - 1) / 64)
-		{
-			position = (xP - m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64;
+			int position;		
+			position = (xP - 1 - m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64 + (m_pcSlice->getSPS()->getPicHeightInLumaSamples() / 64 - 1)* (m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 64);;
 			neibCU = m_pcPic->getCtu(position);
 			neibPUPartIdx = g_auiRasterToZscan[((xP - 1 - m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) % 64) / 4 + 240];
-		}
-		else
+		
+		if (neibCU == NULL)
 		{
-			position = (xP - m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64 - 1;//不在同一个CTU下了
+			position = (xP + nPSW - 1 - m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64 + (m_pcSlice->getSPS()->getPicHeightInLumaSamples() / 64 - 1)* (m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 64);;
 			neibCU = m_pcPic->getCtu(position);
-			neibPUPartIdx = g_auiRasterToZscan[255];
+			neibPUPartIdx = g_auiRasterToZscan[((xP + nPSW - 1 - m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) % 64) / 4 + 240];
 
 		}
+		
 		break;
 	}
 	case MD_ABOVE_LEFT:
 	{
-		int position;
-		if (xP / 64 == (xP - 1) / 64)
-		{
-			position = (xP - m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64;
-			neibCU = m_pcPic->getCtu(position);
-			neibPUPartIdx = g_auiRasterToZscan[((xP - 1 - m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) % 64) / 4];
-		}
-		else
-		{
-			position = (xP - m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64 - 1;//不在同一个CTU下了
-			neibCU = m_pcPic->getCtu(position);
-			neibPUPartIdx = g_auiRasterToZscan[15];
-
-		}
+			int position;
+			if (xP - 1 >= m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2)
+			{
+				position = (xP - 1 - m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) / 64;
+				neibCU = m_pcPic->getCtu(position);
+				neibPUPartIdx = g_auiRasterToZscan[((xP - 1 - m_pcSlice->getSPS()->getPicWidthInLumaSamples() / 2) % 64) / 4];
+			}
+		
 		break;
 	}
 	default:
