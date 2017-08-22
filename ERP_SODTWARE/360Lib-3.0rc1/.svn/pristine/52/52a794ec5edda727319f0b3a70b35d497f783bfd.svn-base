@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <LocalDebuggerCommandArguments>-c  ..\cfg-360Lib\HM-16.14\encoder_randomaccess_main10.cfg -c ..\cfg-360Lib\encoder_360_CMP.cfg -c ..\cfg-360Lib\per-sequence\360\360test_AerialCity.cfg -i C:\test_seq\360\abyss_great_shark_vr_30p_3840x1920_30frms.yuv --CodingFaceWidth=240 --CodingFaceHeight=240 -f 2  -b test.bin -o "" --SphFile="../cfg-360Lib/360Lib/sphere_655362.txt" --SEIDecodedPictureHash=1 -q 27</LocalDebuggerCommandArguments>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <LocalDebuggerWorkingDirectory>$(ProjectDir)..\..\bin</LocalDebuggerWorkingDirectory>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <LocalDebuggerCommandArguments>-c  ..\cfg-360Lib\HM-16.14\encoder_randomaccess_main10.cfg -c ..\cfg-360Lib\encoder_360_CMP.cfg -c ..\cfg-360Lib\per-sequence\360\360test_AerialCity.cfg -i C:\test_seq\360\abyss_great_shark_vr_30p_3840x1920_30frms.yuv --CodingFaceWidth=240 --CodingFaceHeight=240 -f 1  -b test.bin -o "" --SphFile="../cfg-360Lib/360Lib/sphere_655362.txt" --SEIDecodedPictureHash=1 -q 27</LocalDebuggerCommandArguments>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <LocalDebuggerWorkingDirectory>$(ProjectDir)..\..\bin</LocalDebuggerWorkingDirectory>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+  </PropertyGroup>
+</Project>

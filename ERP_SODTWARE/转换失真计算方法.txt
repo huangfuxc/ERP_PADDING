@@ -1,0 +1,3 @@
+//reconstructPicYuv(pcPic->getPicYuvRec());
+  reconstructPicYuv(pcPic->getPicYuvOrg());
+  修改时，将重建的输入改为原始图像，则就是未编码时的失真

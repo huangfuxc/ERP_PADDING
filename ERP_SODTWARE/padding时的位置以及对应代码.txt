@@ -1,0 +1,170 @@
+Void TComPicYuv::extendPicBorder ()
+{
+  if ( m_bIsBorderExtended )
+  {
+    return;
+  }
+
+  for(Int comp=0; comp<getNumberValidComponents(); comp++)
+  {
+    const ComponentID compId=ComponentID(comp);
+    Pel *piTxt=getAddr(compId); // piTxt = point to (0,0) of image within bigger picture.
+    const Int stride=getStride(compId);
+    const Int width=getWidth(compId);
+    const Int height=getHeight(compId);
+    const Int marginX=getMarginX(compId);
+    const Int marginY=getMarginY(compId);
+
+    Pel*  pi = piTxt;
+    // do left and right margins
+    for (Int y = 0; y < height; y++)
+    {
+      for (Int x = 0; x < marginX; x++ )
+      {
+#if HUANGFUPADDING
+		  pi[ -marginX + x ] = pi[width-(marginX-x)];
+		  pi[    width + x ] = pi[x];
+#else
+        pi[ -marginX + x ] = pi[0];
+        pi[    width + x ] = pi[width-1];
+#endif
+      }
+      pi += stride;
+    }
+#if HUANGFUPADDING
+	
+	pi -= (stride + marginX);
+	// pi is now the (-marginX, height-1)
+	for (Int y = 0; y < marginY; y++)
+	{
+		::memcpy(pi + (y + 1)*stride, pi, sizeof(Pel)*(width + (marginX << 1)));
+	}
+
+	// pi is still (-marginX, height-1)
+	pi -= ((height - 1) * stride);
+	// pi is now (-marginX, 0)
+	for (Int y = 0; y < marginY; y++)
+	{
+		::memcpy(pi - (y + 1)*stride, pi, sizeof(Pel)*(width + (marginX << 1)));
+	}
+
+	pi = pi - stride + marginX;// pi is now (0,-1)
+	Pel*s = pi + stride;
+	for (int y = 0; y < marginY; y++)
+	{
+		for (int x = 0; x<width; x++)
+		{
+			pi[x - y*stride] = s[(x - 1 + width / 2) % width];
+		}
+		s += stride;
+	}
+
+	pi += ((height)* stride);
+	//pi -= (stride);// pi is now the (0, height-1);
+	//Pel*s=pi+(stride-1);
+	//s-=( marginX+1);
+	s = pi;
+	for (int y=0; y < marginY; y++)
+	{
+		for (int x = 0; x<width; x++)
+		{
+			pi[x + (y + 1)*stride] = s[(x-1 + width / 2) % width];
+		}
+		//pi+=stride;
+		s-=stride;
+	}
+	//pi-=4*stride;// pi is now the (-marginX, height-1)
+	//pi -= ((height) * stride);// pi is now (0,-1)
+	//s = pi + stride;
+	//for (int y=0; y < marginY; y++)
+	//{
+	//	for (int x = 0; x<width; x++)
+	//	{
+	//		pi[x - y*stride] = s[(x - 1 + width / 2) % width];
+	//	}
+	//	//pi-= stride;
+	//	s += stride;
+	//}
+
+#else
+    // pi is now the (0,height) (bottom left of image within bigger picture
+    pi -= (stride + marginX);
+    // pi is now the (-marginX, height-1)
+    for (Int y = 0; y < marginY; y++ )
+    {
+      ::memcpy( pi + (y+1)*stride, pi, sizeof(Pel)*(width + (marginX<<1)) );
+    }
+
+    // pi is still (-marginX, height-1)
+    pi -= ((height-1) * stride);
+    // pi is now (-marginX, 0)
+    for (Int y = 0; y < marginY; y++ )
+    {
+      ::memcpy( pi - (y+1)*stride, pi, sizeof(Pel)*(width + (marginX<<1)) );
+    }
+#endif
+  }
+#if HUANGFUPADDING
+ // ofstream out1;
+  static int time = 1;
+  if (time)
+  { 
+  FILE  *f1 = NULL;
+  f1 = fopen("..\\padding.yuv", "wb");
+  FILE  *f2 = NULL;
+  f2 = fopen("..\\nopadding.yuv", "wb");
+  //ofstream out2;
+  //out1.open("..\\padding.yuv");
+ // out2.open("..\\roation.yuv");
+  for (Int ch = 0; ch < getNumberValidComponents(); ch++)
+  {
+	  ComponentID chId = (ComponentID)ch;
+	  const Int stride = getStride(chId);
+	  const Int width = getWidth(chId);
+	  const Int height = getHeight(chId);
+	  const Int marginX = getMarginX(chId);
+	  const Int marginY = getMarginY(chId);
+	 int p= marginY ;
+	  char a = 0;
+	  char b= 0;
+	  for (Int i = 0; i < height + (marginY << 1); i++)
+	  {
+		  Pel *pSBuf = getBuf(chId) + i*stride;
+		  //int countstride = 0;
+		  for (Int j = 0; j < stride; j++)
+		  {
+			  a = (pSBuf[j] >> 0);
+			  fprintf(f1, "%c", a);
+			  b = (pSBuf[j] >> 8);
+			  fprintf(f1, "%c", b);
+			  // countstride++;
+		  }
+		  //pSBuf += Stride;
+		 // cout << "countstride: " << countstride << endl;
+	  }
+	  for (Int i = 0; i < height ; i++)
+	  {
+		  Pel *pSBuf = getAddr(chId) + i*stride;
+		  //int countstride = 0;
+		  for (Int j = 0; j < width; j++)
+		  {
+			  a = (pSBuf[j] >> 0);
+			  fprintf(f2, "%c", a);
+			  b = (pSBuf[j] >> 8);
+			  fprintf(f2, "%c", b);
+			  // countstride++;
+		  }
+		  //pSBuf += Stride;
+		  // cout << "countstride: " << countstride << endl;
+	  }
+  }
+  //out2.close();
+  fclose(f1);
+  fclose(f2);
+  time = 0;
+  }
+ // out1.close();
+#endif
+
+  m_bIsBorderExtended = true;
+}
